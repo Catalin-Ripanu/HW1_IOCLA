@@ -1,0 +1,527 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#define MAX_INPUT_LINE_SIZE 300
+struct Dir;
+struct File;
+typedef struct Dir {
+	char *name;
+	struct Dir* parent;
+	struct File* head_children_files;
+	struct Dir* head_children_dirs;
+	struct Dir* next;
+}
+Dir;
+typedef struct File {
+	char *name;
+	struct Dir* parent;
+	struct File* next;
+}
+File;
+void stop(Dir* target);
+void init_dir (Dir** home_dir) {
+	int val1=5;
+	*home_dir=(Dir *)malloc(sizeof(*(*home_dir)));
+	(*home_dir)->name=(char *)malloc(val1*sizeof(*((*home_dir)->name)));
+	strcpy((*home_dir)->name,"home");
+	(*home_dir)->parent=NULL;
+	(*home_dir)->next=NULL;
+	(*home_dir)->head_children_dirs=NULL;
+	(*home_dir)->head_children_files=NULL;
+}
+void touch (Dir* parent, char* name) {
+	File *search;
+	Dir* find;
+	int condition1=1,condition2=1;
+	search=parent->head_children_files;
+	if(search) {
+		while(search->next) {
+			if(strcmp(search->name,name)==0) {
+				condition1=0;
+				break;
+			}
+			search=search->next;
+		}
+		if(strcmp(search->name,name)==0)
+		   condition1=0;
+	} else
+	       condition1=1;
+	find=parent->head_children_dirs;
+	if(find) {
+		while(find->next) {
+			if(strcmp(find->name,name)==0) {
+				condition2=0;
+				break;
+			}
+			find=find->next;
+		}
+		if(strcmp(find->name,name)==0)
+		  condition2=0;
+	} else
+	       condition2=1;
+	if(condition1==1 && condition2==1) {
+		File* newfile;
+		newfile=(File *)malloc(sizeof(*newfile));
+		newfile->name=(char *)malloc((strlen(name)+1)*sizeof(*(newfile->name)));
+		strcpy(newfile->name,name);
+		newfile->next=NULL;
+		newfile->parent=parent;
+		if(parent->head_children_files==NULL)
+		    parent->head_children_files=newfile; else {
+			File* aux;
+			aux=parent->head_children_files;
+			while(parent->head_children_files->next)
+			          parent->head_children_files=parent->head_children_files->next;
+			parent->head_children_files->next=newfile;
+			parent->head_children_files=aux;
+		}
+	} else
+	      printf("File already exists\n");
+}
+void mkdir (Dir* parent, char* name) {
+	File *search;
+	Dir* find;
+	int condition1=1,condition2=1;
+	search=parent->head_children_files;
+	if(search) {
+		while(search->next) {
+			if(strcmp(search->name,name)==0) {
+				condition1=0;
+				break;
+			}
+			search=search->next;
+		}
+		if(strcmp(search->name,name)==0)
+		   condition1=0;
+	} else
+	       condition1=1;
+	find=parent->head_children_dirs;
+	if(find) {
+		while(find->next) {
+			if(strcmp(find->name,name)==0) {
+				condition2=0;
+				break;
+			}
+			find=find->next;
+		}
+		if(strcmp(find->name,name)==0)
+		  condition2=0;
+	} else
+	       condition2=1;
+	if(condition1==1 && condition2==1) {
+		Dir* newdir;
+		newdir=(Dir *)malloc(sizeof(*newdir));
+		newdir->name=(char *)malloc((strlen(name)+1)*sizeof(*(newdir->name)));
+		strcpy(newdir->name,name);
+		newdir->next=NULL;
+		newdir->parent=parent;
+		newdir->head_children_dirs=NULL;
+		newdir->head_children_files=NULL;
+		if(parent->head_children_dirs==NULL)
+		    parent->head_children_dirs=newdir; else {
+			Dir* aux;
+			aux=parent->head_children_dirs;
+			while(parent->head_children_dirs->next)
+			          parent->head_children_dirs=parent->head_children_dirs->next;
+			parent->head_children_dirs->next=newdir;
+			parent->head_children_dirs=aux;
+		}
+	} else
+	      printf("Directory already exists\n");
+}
+void ls (Dir* parent) {
+	File* aux1;
+	Dir* aux2;
+	aux1=parent->head_children_files;
+	aux2=parent->head_children_dirs;
+	if(aux2!=NULL && aux2->next==NULL) {
+		printf("%s\n",aux2->name);
+	} else
+	       if(aux2!=NULL) {
+		while(aux2->next) {
+			printf("%s\n",aux2->name);
+			aux2=aux2->next;
+		}
+		printf("%s\n",aux2->name);
+	}
+	if(aux1!=NULL && aux1->next==NULL) {
+		printf("%s\n",aux1->name);
+	} else
+	        if(aux1!=NULL) {
+		while(aux1->next) {
+			printf("%s\n",aux1->name);
+			aux1=aux1->next;
+		}
+		printf("%s\n",aux1->name);
+	}
+}
+void rm (Dir* parent, char* name) {
+	File *search;
+	File *aux;
+	int contor=0;
+	search=parent->head_children_files;
+	if(search!=NULL) {
+		if(strcmp(search->name,name)==0) {
+			parent->head_children_files=parent->head_children_files->next;
+			free(search->name);
+			free(search);
+			search=NULL;
+			contor=1;
+		} else {
+			aux=search;
+			search=search->next;
+			while(search!=NULL && search->next) {
+				if(strcmp(search->name,name)==0) {
+					aux->next=search->next;
+					free(search->name);
+					free(search);
+					search=NULL;
+					contor=1;
+					break;
+				}
+				aux=search;
+				search=search->next;
+			}
+			if(search!=NULL && strcmp(search->name,name)==0 && search->next==NULL) {
+				free(search->name);
+				free(search);
+				aux->next=NULL;
+				contor=1;
+			}
+		}
+	}
+	if(contor==0)
+	   printf("Could not find the file\n");
+}
+void rmdir (Dir* parent, char* name) {
+	Dir *search;
+	Dir *aux;
+	int contor=0;
+	search=parent->head_children_dirs;
+	if(search!=NULL) {
+		if(strcmp(search->name,name)==0) {
+			parent->head_children_dirs=parent->head_children_dirs->next;
+			stop(search);
+			free(search->name);
+			free(search);
+			search=NULL;
+			contor=1;
+		} else {
+			aux=search;
+			search=search->next;
+			while(search!=NULL && search->next) {
+				if(strcmp(search->name,name)==0) {
+					aux->next=search->next;
+					stop(search);
+					free(search->name);
+					free(search);
+					search=NULL;
+					contor=1;
+					break;
+				}
+				aux=search;
+				search=search->next;
+			}
+			if(search!=NULL && strcmp(search->name,name)==0 && search->next==NULL) {
+				stop(search);
+				free(search->name);
+				free(search);
+				aux->next=NULL;
+				contor=1;
+			}
+		}
+	}
+	if(contor==0)
+	   printf("Could not find the dir\n");
+}
+void cd(Dir** target, char *name) {
+	Dir* find=(*target)->head_children_dirs;
+	int cont=0;
+	if(strcmp(name,"..")!=0) {
+		if(find!=NULL) {
+			if(strcmp(find->name,name)==0) {
+				*target=(*target)->head_children_dirs;
+				cont=1;
+			} else {
+				while(find->next) {
+					find=find->next;
+					if(strcmp(find->name,name)==0) {
+						*target=find;
+						cont=1;
+						break;
+					}
+				}
+				if(strcmp(find->name,name)==0) {
+					*target=find;
+					cont=1;
+				}
+			}
+		}
+	} else {
+		if((*target)->parent!=NULL) {
+			*target=(*target)->parent;
+		}
+		cont=1;
+	}
+	if(cont==0)
+	            printf("No directories found!\n");
+}
+char *pwd (Dir* target) {
+	char *result;
+	result=(char *)malloc(MAX_INPUT_LINE_SIZE*sizeof(*result));
+	strcpy(result,"");
+	char *helper;
+	helper=(char *)malloc(MAX_INPUT_LINE_SIZE*sizeof(*helper));
+	while(target!=NULL) {
+		strcpy(helper,"/");
+		strcat(helper,target->name);
+		strcpy(result,strcat(helper,result));
+		target=target->parent;
+	}
+	free(helper);
+	return result;
+}
+void stop (Dir* target) {
+	File *aux1;
+	Dir *aux2;
+	aux1=target->head_children_files;
+	if(aux1!=NULL) {
+		while(aux1->next) {
+			aux1=target->head_children_files->next;
+			free(target->head_children_files->name);
+			free(target->head_children_files);
+			target->head_children_files=aux1;
+		}
+		free(aux1->name);
+		free(aux1);
+	}
+	aux2=target->head_children_dirs;
+	if(aux2!=NULL) {
+		while(aux2->next) {
+			if(aux2->head_children_dirs!=NULL || aux2->head_children_files!=NULL)
+			   stop(aux2);
+			aux2=target->head_children_dirs->next;
+			free(target->head_children_dirs->name);
+			free(target->head_children_dirs);
+			target->head_children_dirs=aux2;
+		}
+		if(aux2->head_children_dirs!=NULL || aux2->head_children_files!=NULL)
+		   stop(aux2);
+		free(aux2->name);
+		free(aux2);
+	}
+}
+void tree (Dir* target, int level) {
+	Dir* aux;
+	File* aux1;
+	aux=target->head_children_dirs;
+	while(aux!=NULL) {
+		printf("%*s\n",4*level+(int)strlen(aux->name),aux->name);
+		tree(aux,level+1);
+		aux=aux->next;
+	}
+	aux1=target->head_children_files;
+	while(aux1!=NULL) {
+		printf("%*s\n",4*level+(int)strlen(aux1->name),aux1->name);
+		aux1=aux1->next;
+	}
+}
+void mv(Dir* parent, char *oldname, char *newname) {
+	Dir* search;
+	File* find;
+	Dir* helper_dir;
+	File* helper_file;
+	search=parent->head_children_dirs;
+	find=parent->head_children_files;
+	int condition1=0;
+	int condition2=0;
+	int condition1_2=0;
+	int condition2_2=0;
+	int helper_int=0;
+	if(search!=NULL) {
+		while(search->next) {
+			if(strcmp(search->name,oldname)==0) {
+				helper_dir=search;
+				condition1=1;
+				break;
+			}
+			search=search->next;
+		}
+		if(search->next==NULL && strcmp(search->name,oldname)==0) {
+			helper_dir=search;
+			condition1=1;
+		}
+		search=parent->head_children_dirs;
+		while(search->next) {
+			if(strcmp(search->name,newname)==0) {
+				condition1_2=1;
+				break;
+			}
+			search=search->next;
+		}
+		if(search->next==NULL && strcmp(search->name,newname)==0)
+		  condition1_2=1;
+	}
+	if(find!=NULL) {
+		while(find->next) {
+			if(strcmp(find->name,oldname)==0) {
+				helper_file=find;
+				condition2=1;
+				break;
+			}
+			find=find->next;
+		}
+		if(find->next==NULL && strcmp(find->name,oldname)==0) {
+			helper_file=find;
+			condition2=1;
+		}
+		find=parent->head_children_files;
+		while(find->next) {
+			if(strcmp(find->name,newname)==0) {
+				condition2_2=1;
+				break;
+			}
+			find=find->next;
+		}
+		if(find->next==NULL && strcmp(find->name,newname)==0)
+		   condition2_2=1;
+	}
+	if(condition1==1 || condition2==1) {
+		if(condition1==1) {
+			if(condition1_2==0 && condition2_2==0) {
+				search=parent->head_children_dirs;
+				if(strcmp(search->name,oldname)==0) {
+					if(search->next==NULL)
+					              strcpy(search->name,newname); else {
+						parent->head_children_dirs=search->next;
+						while(search->next)
+						                   search=search->next;
+						search->next=helper_dir;
+						helper_dir->next=NULL;
+						strcpy(helper_dir->name,newname);
+					}
+				} else
+				                if(helper_dir->next!=NULL) {
+					while(search->next) {
+						if(search->next==helper_dir) {
+							search->next=search->next->next;
+							helper_int=1;
+						}
+						search=search->next;
+					}
+					if(helper_int==1) {
+						search->next=helper_dir;
+						helper_dir->next=NULL;
+						strcpy(helper_dir->name,newname);
+					} else
+					                     strcpy(helper_dir->name,newname);
+				} else
+				                 strcpy(helper_dir->name,newname);
+			} else
+			               printf("File/Director already exists\n");
+		} else
+		           if(condition2==1) {
+			if(condition1_2==0 && condition2_2==0) {
+				find=parent->head_children_files;
+				if(strcmp(find->name,oldname)==0) {
+					if(find->next==NULL)
+					              strcpy(find->name,newname); else {
+						parent->head_children_files=find->next;
+						while(find->next)
+						                      find=find->next;
+						find->next=helper_file;
+						helper_file->next=NULL;
+						strcpy(helper_file->name,newname);
+					}
+				} else
+				                if(helper_file->next!=NULL) {
+					while(find->next) {
+						if(find->next==helper_file) {
+							find->next=find->next->next;
+							helper_int=1;
+						}
+						find=find->next;
+					}
+					if(helper_int==1) {
+						find->next=helper_file;
+						helper_file->next=NULL;
+						strcpy(helper_file->name,newname);
+					} else
+					                     strcpy(helper_file->name,newname);
+				} else
+				                     strcpy(helper_file->name,newname);
+			} else
+			               printf("File/Director already exists\n");
+		}
+	} else
+	       printf("File/Director not found\n");
+}
+int main () {
+	Dir* home_dir;
+	Dir* curr_dir;
+	init_dir(&home_dir);
+	curr_dir=home_dir;
+	char *input_command;
+	input_command=(char *)malloc(MAX_INPUT_LINE_SIZE*sizeof(*input_command));
+	fgets(input_command,MAX_INPUT_LINE_SIZE,stdin);
+	char *split_command;
+	char *split_command_mv;
+	char *result_pwd=NULL;
+	split_command=strtok(input_command," ");
+	while(1) {
+		if(strcmp(split_command,"touch")==0) {
+			split_command=strtok(NULL," ");
+			split_command[strcspn(split_command, "\n")] = 0;
+			touch(curr_dir,split_command);
+		}
+		if(strcmp(split_command,"mkdir")==0) {
+			split_command=strtok(NULL," ");
+			split_command[strcspn(split_command, "\n")] = 0;
+			mkdir(curr_dir,split_command);
+		}
+		if(strcmp(input_command,"ls\n")==0) {
+			ls(curr_dir);
+		}
+		if(strcmp(input_command,"stop\n")==0) {
+			while(curr_dir->parent!=NULL)
+			          cd(&curr_dir,"..");
+			stop(curr_dir);
+			free(curr_dir->name);
+			free(curr_dir);
+			break;
+		}
+		if(strcmp(split_command,"rm")==0) {
+			split_command=strtok(NULL," ");
+			split_command[strcspn(split_command, "\n")] = 0;
+			rm(curr_dir,split_command);
+		}
+		if(strcmp(split_command,"rmdir")==0) {
+			split_command=strtok(NULL," ");
+			split_command[strcspn(split_command, "\n")] = 0;
+			rmdir(curr_dir,split_command);
+		}
+		if(strcmp(split_command,"cd")==0) {
+			split_command=strtok(NULL," ");
+			split_command[strcspn(split_command, "\n")] = 0;
+			cd(&curr_dir,split_command);
+		}
+		if(strcmp(input_command,"tree\n")==0) {
+			tree(curr_dir,0);
+		}
+		if(strcmp(input_command,"pwd\n")==0) {
+			result_pwd=pwd(curr_dir);
+			printf("%s\n",result_pwd);
+			free(result_pwd);
+		}
+		if(strcmp(split_command,"mv")==0) {
+			split_command=strtok(NULL," ");
+			split_command_mv=strtok(NULL," ");
+			split_command_mv[strcspn(split_command_mv, "\n")] = 0;
+			mv(curr_dir,split_command,split_command_mv);
+		}
+		fgets(input_command,MAX_INPUT_LINE_SIZE,stdin);
+		split_command=strtok(input_command," ");
+	}
+	free(input_command);
+	return 0;
+}
